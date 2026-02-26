@@ -391,4 +391,13 @@ pre {
 @media (max-width: 600px) {
   .container { padding: 28px 16px 60px; }
   .top-bar { flex-direction: column; }
+}
+
+.link-btn {
+  background: linear-gradient(135deg, #312e81, #818cf8) !important;
+}
+
+.link-btn:hover {
+  box-shadow: 0 6px 20px rgba(129,140,248,0.35) !important;
                               }
+  
