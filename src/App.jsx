@@ -180,8 +180,8 @@ export default function App() {
     <div className="container">
 
       <div className="header">
-        <h1 ref={h1Ref}>Script Manager</h1>
-        <p className="header-sub">Gerencie e organize seus scripts com facilidade</p>
+        <h1 ref={h1Ref}>TroveX</h1>
+        <p className="header-sub">Gerencie e organize seus preciosos scripts e links com facilidade</p>
       </div>
 
       <div className="top-bar">
