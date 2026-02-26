@@ -11,7 +11,18 @@ function Toast({ message, visible }) {
 }
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
+function isValidUrl(text) {
+  try {
+    new URL(text.trim())
+    return true
+  } catch {
+    return false
+  }
+}
+
 function ScriptCard({ script, onDelete, onCopy }) {
+  const isLink = isValidUrl(script.content)
+
   return (
     <div className="card">
       <div className="card-title">{script.title}</div>
@@ -20,6 +31,14 @@ function ScriptCard({ script, onDelete, onCopy }) {
         <button className="copy-btn" onClick={() => onCopy(script.content)}>
           ⎘ Copiar
         </button>
+        {isLink && (
+          <button
+            className="link-btn"
+            onClick={() => window.open(script.content.trim(), '_blank')}
+          >
+            🔗 Abrir
+          </button>
+        )}
         <button className="delete" onClick={() => onDelete(script.id)}>
           🗑 Excluir
         </button>
@@ -196,7 +215,6 @@ export default function App() {
       </div>
 
       <div className="grid">
-        {/* Estado de carregando */}
         {loading && (
           <div className="empty-state">
             <span className="icon">⏳</span>
@@ -204,7 +222,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Estado de erro */}
         {!loading && dbError && (
           <div className="empty-state">
             <span className="icon">⚠️</span>
@@ -214,7 +231,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Estado vazio */}
         {!loading && !dbError && filtered.length === 0 && (
           <div className="empty-state">
             <span className="icon">📭</span>
@@ -222,7 +238,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Lista de scripts */}
         {!loading && !dbError && filtered.map((script) => (
           <ScriptCard
             key={script.id}
@@ -237,5 +252,4 @@ export default function App() {
 
     </div>
   )
-    }
-        
+  }
