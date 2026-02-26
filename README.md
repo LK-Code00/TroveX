@@ -1,4 +1,4 @@
-# 🗂️ Script Manager
+# 🗂️ TroveX
 
 A personal tool to store, search and manage scripts — built just for fun while practicing React and Supabase.
 
