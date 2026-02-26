@@ -35,6 +35,8 @@ export default function App() {
   const [title, setTitle]     = useState('')
   const [content, setContent] = useState('')
   const [toast, setToast]     = useState({ message: '', visible: false })
+  const [loading, setLoading] = useState(true)
+  const [dbError, setDbError] = useState(null)
   const toastTimer            = useRef(null)
   const h1Ref                 = useRef(null)
 
@@ -90,13 +92,23 @@ export default function App() {
 
   // ─── Supabase: buscar ────────────────────────────────────────────────────────
   async function fetchScripts() {
-    const { data, error } = await supabaseClient
-      .from('scripts')
-      .select('*')
-      .order('created_at', { ascending: false })
+    setLoading(true)
+    setDbError(null)
 
-    if (!error) setScripts(data)
-    else console.error('Erro ao buscar scripts:', error)
+    try {
+      const { data, error } = await supabaseClient
+        .from('scripts')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setScripts(data)
+    } catch (err) {
+      console.error('Erro ao buscar scripts:', err)
+      setDbError('Não foi possível conectar ao banco de dados.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // ─── Supabase: adicionar ─────────────────────────────────────────────────────
@@ -114,6 +126,7 @@ export default function App() {
       showToast('✓ Script adicionado!')
     } else {
       console.error('Erro ao adicionar:', error)
+      showToast('❌ Erro ao adicionar script')
     }
   }
 
@@ -129,6 +142,7 @@ export default function App() {
       showToast('🗑 Script excluído')
     } else {
       console.error('Erro ao deletar:', error)
+      showToast('❌ Erro ao excluir script')
     }
   }
 
@@ -178,18 +192,38 @@ export default function App() {
 
       <div className="section-label">
         Scripts salvos
-        <span className="count-badge">{filtered.length}</span>
+        {!loading && <span className="count-badge">{filtered.length}</span>}
       </div>
 
       <div className="grid">
-        {filtered.length === 0 && (
+        {/* Estado de carregando */}
+        {loading && (
+          <div className="empty-state">
+            <span className="icon">⏳</span>
+            Carregando scripts...
+          </div>
+        )}
+
+        {/* Estado de erro */}
+        {!loading && dbError && (
+          <div className="empty-state">
+            <span className="icon">⚠️</span>
+            {dbError}
+            <br /><br />
+            <button onClick={fetchScripts}>Tentar novamente</button>
+          </div>
+        )}
+
+        {/* Estado vazio */}
+        {!loading && !dbError && filtered.length === 0 && (
           <div className="empty-state">
             <span className="icon">📭</span>
             Nenhum script encontrado.<br />Adicione seu primeiro script acima!
           </div>
         )}
 
-        {filtered.map((script) => (
+        {/* Lista de scripts */}
+        {!loading && !dbError && filtered.map((script) => (
           <ScriptCard
             key={script.id}
             script={script}
@@ -203,4 +237,5 @@ export default function App() {
 
     </div>
   )
-}
+    }
+        
