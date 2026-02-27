@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseClient } from './supabase.js'
+import Login from './Login.jsx'
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ message, visible }) {
@@ -10,7 +11,7 @@ function Toast({ message, visible }) {
   )
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
+// ─── Verifica se o conteúdo é um URL válido ───────────────────────────────────
 function isValidUrl(text) {
   try {
     new URL(text.trim())
@@ -20,8 +21,11 @@ function isValidUrl(text) {
   }
 }
 
-function ScriptCard({ script, onDelete, onCopy }) {
-  const isLink = isValidUrl(script.content)
+// ─── Card ─────────────────────────────────────────────────────────────────────
+function ScriptCard({ script, onDelete, onCopy, isAdmin, currentUserId }) {
+  const isLink    = isValidUrl(script.content)
+  const isOwner   = script.created_by === currentUserId
+  const canDelete = isAdmin && isOwner
 
   return (
     <div className="card">
@@ -39,9 +43,11 @@ function ScriptCard({ script, onDelete, onCopy }) {
             🔗 Abrir
           </button>
         )}
-        <button className="delete" onClick={() => onDelete(script.id)}>
-          🗑 Excluir
-        </button>
+        {canDelete && (
+          <button className="delete" onClick={() => onDelete(script.id)}>
+            🗑 Excluir
+          </button>
+        )}
       </div>
     </div>
   )
@@ -49,21 +55,36 @@ function ScriptCard({ script, onDelete, onCopy }) {
 
 // ─── App principal ────────────────────────────────────────────────────────────
 export default function App() {
-  const [scripts, setScripts] = useState([])
-  const [search, setSearch]   = useState('')
-  const [title, setTitle]     = useState('')
-  const [content, setContent] = useState('')
-  const [toast, setToast]     = useState({ message: '', visible: false })
-  const [loading, setLoading] = useState(true)
-  const [dbError, setDbError] = useState(null)
-  const toastTimer            = useRef(null)
-  const h1Ref                 = useRef(null)
+  const [session, setSession]   = useState(undefined) // undefined = carregando, null = não logado
+  const [scripts, setScripts]   = useState([])
+  const [search, setSearch]     = useState('')
+  const [title, setTitle]       = useState('')
+  const [content, setContent]   = useState('')
+  const [toast, setToast]       = useState({ message: '', visible: false })
+  const [loading, setLoading]   = useState(true)
+  const [dbError, setDbError]   = useState(null)
+  const toastTimer              = useRef(null)
+  const h1Ref                   = useRef(null)
 
+  // ─── Escuta mudanças de autenticação ─────────────────────────────────────────
   useEffect(() => {
-    fetchScripts()
+    supabaseClient.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => listener.subscription.unsubscribe()
   }, [])
 
-  // ─── Sparkle no h1 ──────────────────────────────────────────────────────────
+  // ─── Busca scripts quando loga ───────────────────────────────────────────────
+  useEffect(() => {
+    if (session) fetchScripts()
+  }, [session])
+
+  // ─── Sparkle no h1 ───────────────────────────────────────────────────────────
   useEffect(() => {
     const h1 = h1Ref.current
     if (!h1) return
@@ -77,7 +98,7 @@ export default function App() {
       setTimeout(() => h1.classList.remove('clicked'), 600)
 
       for (let i = 0; i < 18; i++) {
-        const sp = document.createElement('span')
+        const sp    = document.createElement('span')
         sp.className = 'sparkle'
         const angle = Math.random() * 2 * Math.PI
         const dist  = 50 + Math.random() * 90
@@ -98,9 +119,9 @@ export default function App() {
 
     h1.addEventListener('click', handleClick)
     return () => h1.removeEventListener('click', handleClick)
-  }, [])
+  }, [session])
 
-  // ─── Toast helper ────────────────────────────────────────────────────────────
+  // ─── Toast helper ─────────────────────────────────────────────────────────────
   function showToast(message) {
     clearTimeout(toastTimer.current)
     setToast({ message, visible: true })
@@ -109,7 +130,17 @@ export default function App() {
     }, 2200)
   }
 
-  // ─── Supabase: buscar ────────────────────────────────────────────────────────
+  // ─── Permissões ───────────────────────────────────────────────────────────────
+  const userRole    = session?.user?.user_metadata?.role ?? 'user'
+  const isAdmin     = userRole === 'admin'
+  const currentUserId = session?.user?.id
+
+  // ─── Logout ───────────────────────────────────────────────────────────────────
+  async function handleLogout() {
+    await supabaseClient.auth.signOut()
+  }
+
+  // ─── Supabase: buscar ─────────────────────────────────────────────────────────
   async function fetchScripts() {
     setLoading(true)
     setDbError(null)
@@ -130,13 +161,13 @@ export default function App() {
     }
   }
 
-  // ─── Supabase: adicionar ─────────────────────────────────────────────────────
+  // ─── Supabase: adicionar ──────────────────────────────────────────────────────
   async function addScript() {
-    if (!title || !content) return
+    if (!isAdmin || !title || !content) return
 
     const { error } = await supabaseClient
       .from('scripts')
-      .insert([{ title, content }])
+      .insert([{ title, content, created_by: currentUserId }])
 
     if (!error) {
       setTitle('')
@@ -149,7 +180,7 @@ export default function App() {
     }
   }
 
-  // ─── Supabase: deletar ───────────────────────────────────────────────────────
+  // ─── Supabase: deletar ────────────────────────────────────────────────────────
   async function deleteScript(id) {
     const { error } = await supabaseClient
       .from('scripts')
@@ -165,7 +196,7 @@ export default function App() {
     }
   }
 
-  // ─── Copiar ──────────────────────────────────────────────────────────────────
+  // ─── Copiar ───────────────────────────────────────────────────────────────────
   async function copyScript(text) {
     await navigator.clipboard.writeText(text)
     showToast('✓ Copiado!')
@@ -175,39 +206,63 @@ export default function App() {
     s.title.toLowerCase().includes(search.toLowerCase())
   )
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  // ─── Estados de carregamento inicial ─────────────────────────────────────────
+  if (session === undefined) {
+    return (
+      <div className="login-wrapper">
+        <div className="login-card">
+          <div className="login-icon">⏳</div>
+          <p className="login-sub">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) return <Login />
+
+  // ─── Render principal ─────────────────────────────────────────────────────────
   return (
     <div className="container">
 
       <div className="header">
         <h1 ref={h1Ref}>TroveX</h1>
-        <p className="header-sub">Gerencie e organize seus preciosos scripts e links com facilidade</p>
+        <p className="header-sub">Seu cofre pessoal de links e scripts</p>
+        <div className="user-bar">
+          <span className="user-role-badge">
+            {isAdmin ? '👑 Admin' : '👤 Usuário'}
+          </span>
+          <span className="user-email">{session.user.email}</span>
+          <button className="logout-btn" onClick={handleLogout}>Sair</button>
+        </div>
       </div>
 
       <div className="top-bar">
         <input
           type="text"
-          placeholder="🔍  Pesquisar scripts..."
+          placeholder="🔍  Pesquisar..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="top-bar">
-        <input
-          type="text"
-          placeholder="Título do Script"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <textarea
-          placeholder="Conteúdo do Script"
-          value={content}
-          rows={3}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <button onClick={addScript}>＋ Adicionar</button>
-      </div>
+      {/* Formulário só para admins */}
+      {isAdmin && (
+        <div className="top-bar">
+          <input
+            type="text"
+            placeholder="Título"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <textarea
+            placeholder="Conteúdo ou link"
+            value={content}
+            rows={3}
+            onChange={(e) => setContent(e.target.value)}
+          />
+          <button onClick={addScript}>＋ Adicionar</button>
+        </div>
+      )}
 
       <div className="section-label">
         Scripts salvos
@@ -234,7 +289,8 @@ export default function App() {
         {!loading && !dbError && filtered.length === 0 && (
           <div className="empty-state">
             <span className="icon">📭</span>
-            Nenhum script encontrado.<br />Adicione seu primeiro script acima!
+            Nenhum script encontrado.
+            {isAdmin && <><br />Adicione seu primeiro script acima!</>}
           </div>
         )}
 
@@ -244,6 +300,8 @@ export default function App() {
             script={script}
             onDelete={deleteScript}
             onCopy={copyScript}
+            isAdmin={isAdmin}
+            currentUserId={currentUserId}
           />
         ))}
       </div>
@@ -252,4 +310,4 @@ export default function App() {
 
     </div>
   )
-  }
+      }
