@@ -399,5 +399,134 @@ pre {
 
 .link-btn:hover {
   box-shadow: 0 6px 20px rgba(129,140,248,0.35) !important;
-                              }
-  
+}
+
+/* ─── Login ──────────────────────────────────────────── */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+  animation: fadeUp 0.5s ease both;
+  text-align: center;
+}
+
+.login-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.login-title {
+  font-family: var(--font-head);
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #ffffff 10%, var(--accent) 55%, var(--accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+  margin-bottom: 6px;
+  cursor: default;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 32px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.login-error {
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: var(--danger);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 14px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #1d6fa8, #3b82f6);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ─── User bar ───────────────────────────────────────── */
+.user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.user-role-badge {
+  background: rgba(56,189,248,0.1);
+  border: 1px solid rgba(56,189,248,0.2);
+  color: var(--accent);
+  font-size: 11px;
+  padding: 3px 12px;
+  border-radius: 99px;
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.logout-btn {
+  font-size: 11px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 99px;
+}
+
+.logout-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: none;
+  filter: none;
+  }
