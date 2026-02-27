@@ -84,15 +84,23 @@ export default function Login() {
         </div>
 
         <form className="auth-form" onSubmit={mode === 'login' ? handleLogin : handleRegister}>
-          <div className="auth-field">
-            <span className="auth-field-icon">✉</span>
-            <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-          <div className="auth-field">
-            <span className="auth-field-icon">🔒</span>
-            <input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
           {mode === 'register' && (
             <>
@@ -102,10 +110,14 @@ export default function Login() {
               </label>
 
               {isAdmin && (
-                <div className="auth-field">
-                  <span className="auth-field-icon">👑</span>
-                  <input type="password" placeholder="Código de administrador" value={adminCode} onChange={(e) => setAdminCode(e.target.value)} required={isAdmin} />
-                </div>
+                <input
+                  className="auth-input"
+                  type="password"
+                  placeholder="Código de administrador"
+                  value={adminCode}
+                  onChange={(e) => setAdminCode(e.target.value)}
+                  required={isAdmin}
+                />
               )}
             </>
           )}
@@ -120,5 +132,5 @@ export default function Login() {
       </div>
     </div>
   )
-    }
-        
+           }
+                
