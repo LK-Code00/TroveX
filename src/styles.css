@@ -682,41 +682,25 @@ pre {
   gap: 14px;
 }
 
-.auth-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.auth-input {
+  width: 100%;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  padding: 0 16px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+  text-align: left;
 }
 
-.auth-field:focus-within {
+.auth-input::placeholder { color: rgba(255,255,255,0.25); }
+
+.auth-input:focus {
   border-color: rgba(56,189,248,0.4);
   box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
 }
-
-.auth-field-icon {
-  font-size: 14px;
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.auth-field input {
-  background: transparent;
-  border: none;
-  outline: none;
-  width: 100%;
-  padding: 14px 0;
-  font-size: 13px;
-  color: var(--text);
-  box-shadow: none;
-}
-
-.auth-field input::placeholder { color: rgba(255,255,255,0.25); }
-.auth-field input:focus { box-shadow: none; }
 
 /* ─── Checkbox ───────────────────────────────────────── */
 .auth-checkbox {
@@ -776,4 +760,5 @@ pre {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
-    }
+  }
+  
