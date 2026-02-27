@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { supabaseClient } from './supabase.js'
 
-// ─── Senha secreta para registro de admin ─────────────────────────────────────
-// Mude essa string para algo só você saiba
-const ADMIN_SECRET = 'TROVEX_ADMIN_2026'
+const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET
 
 export default function Login() {
   const [mode, setMode]           = useState('login')
@@ -122,4 +120,5 @@ export default function Login() {
       </div>
     </div>
   )
-  }
+    }
+        
