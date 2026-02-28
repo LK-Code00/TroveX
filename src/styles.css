@@ -760,5 +760,108 @@ pre {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
-  }
-  
+}
+
+/* ─── Profile Menu ───────────────────────────────────── */
+.profile-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.profile-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: 2px solid rgba(255,255,255,0.15);
+  color: white;
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(56,189,248,0.3);
+}
+
+.profile-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(56,189,248,0.45);
+  filter: none;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 230px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  overflow: hidden;
+  animation: fadeUp 0.2s ease both;
+}
+
+.profile-info {
+  padding: 14px 16px;
+  background: rgba(56,189,248,0.05);
+}
+
+.profile-info-email {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.profile-info-role {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.profile-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.profile-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 12px 16px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+  box-shadow: none;
+}
+
+.profile-item:hover {
+  background: rgba(255,255,255,0.05);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.profile-item.danger {
+  color: var(--danger);
+}
+
+.profile-item.danger:hover {
+  background: rgba(248,113,113,0.08);
+}
