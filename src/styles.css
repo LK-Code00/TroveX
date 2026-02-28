@@ -766,11 +766,11 @@ pre {
 .profile-avatar {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 20px;
   z-index: 200;
   width: 42px;
   height: 42px;
-  border-radius: 50%;
+  border-radius: 12px;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   border: 2px solid rgba(255,255,255,0.15);
   color: white;
@@ -811,20 +811,20 @@ pre {
 .drawer {
   position: fixed;
   top: 0;
-  right: -320px;
+  left: -320px;
   width: 300px;
   height: 100vh;
   background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: -16px 0 48px rgba(0,0,0,0.5);
+  border-right: 1px solid var(--border);
+  box-shadow: 16px 0 48px rgba(0,0,0,0.5);
   z-index: 400;
-  transition: right 0.3s cubic-bezier(.34,1.1,.64,1);
+  transition: left 0.3s cubic-bezier(.34,1.1,.64,1);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
-.drawer.open { right: 0; }
+.drawer.open { left: 0; }
 
 /* ─── Drawer Header ──────────────────────────────────── */
 .drawer-header {
@@ -918,4 +918,24 @@ pre {
   font-size: 14px;
   font-weight: 400;
   padding: 14px 20px;
-  t
+   text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.15s;
+  box-shadow: none;
+}
+
+.drawer-item:hover {
+  background: rgba(255,255,255,0.05);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.drawer-item-icon { font-size: 18px; }
+
+.drawer-item.danger { color: var(--danger); }
+
+.drawer-item.danger:hover { background: rgba(248,113,113,0.08); }
