@@ -11,7 +11,58 @@ function Toast({ message, visible }) {
   )
 }
 
-// ─── Verifica se o conteúdo é um URL válido ───────────────────────────────────
+// ─── Profile Menu ─────────────────────────────────────────────────────────────
+function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [])
+
+  const initials = session.user.email.slice(0, 2).toUpperCase()
+
+  return (
+    <div className="profile-wrapper" ref={menuRef}>
+      <button className="profile-avatar" onClick={() => setOpen(!open)}>
+        {initials}
+      </button>
+
+      {open && (
+        <div className="profile-dropdown">
+          <div className="profile-info">
+            <div className="profile-info-email">{session.user.email}</div>
+            <div className="profile-info-role">
+              {isAdmin ? '👑 Administrador' : '👤 Usuário Padrão'}
+            </div>
+          </div>
+
+          <div className="profile-divider" />
+
+          <button className="profile-item" onClick={() => { onLogout(); setOpen(false) }}>
+            🚪 Sair
+          </button>
+
+          <button className="profile-item danger" onClick={() => { onDeleteAccount(); setOpen(false) }}>
+            🗑 Excluir conta
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Verifica URL válida ───────────────────────────────────────────────────────
 function isValidUrl(text) {
   try {
     new URL(text.trim())
@@ -23,9 +74,8 @@ function isValidUrl(text) {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 function ScriptCard({ script, onDelete, onCopy, isAdmin, currentUserId }) {
-  const isLink    = isValidUrl(script.content)
-  const isOwner   = script.created_by === currentUserId
-  const canDelete = isAdmin && isOwner
+  const isLink  = isValidUrl(script.content)
+  const isOwner = script.created_by === currentUserId
 
   return (
     <div className="card">
@@ -36,14 +86,11 @@ function ScriptCard({ script, onDelete, onCopy, isAdmin, currentUserId }) {
           ⎘ Copiar
         </button>
         {isLink && (
-          <button
-            className="link-btn"
-            onClick={() => window.open(script.content.trim(), '_blank')}
-          >
+          <button className="link-btn" onClick={() => window.open(script.content.trim(), '_blank')}>
             🔗 Abrir
           </button>
         )}
-        {canDelete && (
+        {isAdmin && isOwner && (
           <button className="delete" onClick={() => onDelete(script.id)}>
             🗑 Excluir
           </button>
@@ -55,7 +102,7 @@ function ScriptCard({ script, onDelete, onCopy, isAdmin, currentUserId }) {
 
 // ─── App principal ────────────────────────────────────────────────────────────
 export default function App() {
-  const [session, setSession]   = useState(undefined) // undefined = carregando, null = não logado
+  const [session, setSession]   = useState(undefined)
   const [scripts, setScripts]   = useState([])
   const [search, setSearch]     = useState('')
   const [title, setTitle]       = useState('')
@@ -66,91 +113,79 @@ export default function App() {
   const toastTimer              = useRef(null)
   const h1Ref                   = useRef(null)
 
-  // ─── Escuta mudanças de autenticação ─────────────────────────────────────────
   useEffect(() => {
-    supabaseClient.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-
+    supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
-
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  // ─── Busca scripts quando loga ───────────────────────────────────────────────
   useEffect(() => {
     if (session) fetchScripts()
   }, [session])
 
-  // ─── Sparkle no h1 ───────────────────────────────────────────────────────────
   useEffect(() => {
     const h1 = h1Ref.current
     if (!h1) return
-
     const colors = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#facc15']
-
     const handleClick = (e) => {
       h1.classList.remove('clicked')
       void h1.offsetWidth
       h1.classList.add('clicked')
       setTimeout(() => h1.classList.remove('clicked'), 600)
-
       for (let i = 0; i < 18; i++) {
-        const sp    = document.createElement('span')
+        const sp = document.createElement('span')
         sp.className = 'sparkle'
         const angle = Math.random() * 2 * Math.PI
         const dist  = 50 + Math.random() * 90
         sp.style.cssText = `
-          left: ${e.clientX - 3}px;
-          top:  ${e.clientY - 3}px;
+          left: ${e.clientX - 3}px; top: ${e.clientY - 3}px;
           background: ${colors[Math.floor(Math.random() * colors.length)]};
-          width:  ${4 + Math.random() * 6}px;
-          height: ${4 + Math.random() * 6}px;
+          width: ${4 + Math.random() * 6}px; height: ${4 + Math.random() * 6}px;
           box-shadow: 0 0 6px currentColor;
-          --tx: ${Math.cos(angle) * dist}px;
-          --ty: ${Math.sin(angle) * dist}px;
+          --tx: ${Math.cos(angle) * dist}px; --ty: ${Math.sin(angle) * dist}px;
         `
         document.body.appendChild(sp)
         setTimeout(() => sp.remove(), 750)
       }
     }
-
     h1.addEventListener('click', handleClick)
     return () => h1.removeEventListener('click', handleClick)
   }, [session])
 
-  // ─── Toast helper ─────────────────────────────────────────────────────────────
   function showToast(message) {
     clearTimeout(toastTimer.current)
     setToast({ message, visible: true })
-    toastTimer.current = setTimeout(() => {
-      setToast((t) => ({ ...t, visible: false }))
-    }, 2200)
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 2200)
   }
 
-  // ─── Permissões ───────────────────────────────────────────────────────────────
-  const userRole    = session?.user?.user_metadata?.role ?? 'user'
-  const isAdmin     = userRole === 'admin'
+  const userRole      = session?.user?.user_metadata?.role ?? 'user'
+  const isAdmin       = userRole === 'admin'
   const currentUserId = session?.user?.id
 
-  // ─── Logout ───────────────────────────────────────────────────────────────────
   async function handleLogout() {
     await supabaseClient.auth.signOut()
   }
 
-  // ─── Supabase: buscar ─────────────────────────────────────────────────────────
+  async function handleDeleteAccount() {
+    const confirm = window.confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.')
+    if (!confirm) return
+    const { error } = await supabaseClient.rpc('delete_user')
+    if (error) {
+      showToast('❌ Erro ao excluir conta')
+    } else {
+      await supabaseClient.auth.signOut()
+      showToast('✓ Conta excluída')
+    }
+  }
+
   async function fetchScripts() {
     setLoading(true)
     setDbError(null)
-
     try {
       const { data, error } = await supabaseClient
-        .from('scripts')
-        .select('*')
-        .order('created_at', { ascending: false })
-
+        .from('scripts').select('*').order('created_at', { ascending: false })
       if (error) throw error
       setScripts(data)
     } catch (err) {
@@ -161,42 +196,25 @@ export default function App() {
     }
   }
 
-  // ─── Supabase: adicionar ──────────────────────────────────────────────────────
   async function addScript() {
     if (!isAdmin || !title || !content) return
-
     const { error } = await supabaseClient
-      .from('scripts')
-      .insert([{ title, content, created_by: currentUserId }])
-
+      .from('scripts').insert([{ title, content, created_by: currentUserId }])
     if (!error) {
-      setTitle('')
-      setContent('')
+      setTitle(''); setContent('')
       fetchScripts()
       showToast('✓ Script adicionado!')
     } else {
-      console.error('Erro ao adicionar:', error)
       showToast('❌ Erro ao adicionar script')
     }
   }
 
-  // ─── Supabase: deletar ────────────────────────────────────────────────────────
   async function deleteScript(id) {
-    const { error } = await supabaseClient
-      .from('scripts')
-      .delete()
-      .eq('id', id)
-
-    if (!error) {
-      fetchScripts()
-      showToast('🗑 Script excluído')
-    } else {
-      console.error('Erro ao deletar:', error)
-      showToast('❌ Erro ao excluir script')
-    }
+    const { error } = await supabaseClient.from('scripts').delete().eq('id', id)
+    if (!error) { fetchScripts(); showToast('🗑 Script excluído') }
+    else showToast('❌ Erro ao excluir script')
   }
 
-  // ─── Copiar ───────────────────────────────────────────────────────────────────
   async function copyScript(text) {
     await navigator.clipboard.writeText(text)
     showToast('✓ Copiado!')
@@ -206,7 +224,6 @@ export default function App() {
     s.title.toLowerCase().includes(search.toLowerCase())
   )
 
-  // ─── Estados de carregamento inicial ─────────────────────────────────────────
   if (session === undefined) {
     return (
       <div className="login-wrapper">
@@ -220,20 +237,20 @@ export default function App() {
 
   if (!session) return <Login />
 
-  // ─── Render principal ─────────────────────────────────────────────────────────
   return (
     <div className="container">
+
+      {/* Menu de perfil no canto superior direito */}
+      <ProfileMenu
+        session={session}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
+      />
 
       <div className="header">
         <h1 ref={h1Ref}>TroveX</h1>
         <p className="header-sub">Seu cofre pessoal de links e scripts</p>
-        <div className="user-bar">
-          <span className="user-role-badge">
-            {isAdmin ? '👑 Admin' : '👤 Usuário'}
-          </span>
-          <span className="user-email">{session.user.email}</span>
-          <button className="logout-btn" onClick={handleLogout}>Sair</button>
-        </div>
       </div>
 
       <div className="top-bar">
@@ -245,7 +262,6 @@ export default function App() {
         />
       </div>
 
-      {/* Formulário só para admins */}
       {isAdmin && (
         <div className="top-bar">
           <input
@@ -276,16 +292,13 @@ export default function App() {
             Carregando scripts...
           </div>
         )}
-
         {!loading && dbError && (
           <div className="empty-state">
             <span className="icon">⚠️</span>
-            {dbError}
-            <br /><br />
+            {dbError}<br /><br />
             <button onClick={fetchScripts}>Tentar novamente</button>
           </div>
         )}
-
         {!loading && !dbError && filtered.length === 0 && (
           <div className="empty-state">
             <span className="icon">📭</span>
@@ -293,7 +306,6 @@ export default function App() {
             {isAdmin && <><br />Adicione seu primeiro script acima!</>}
           </div>
         )}
-
         {!loading && !dbError && filtered.map((script) => (
           <ScriptCard
             key={script.id}
@@ -307,7 +319,7 @@ export default function App() {
       </div>
 
       <Toast message={toast.message} visible={toast.visible} />
-
     </div>
   )
-      }
+          }
+  
