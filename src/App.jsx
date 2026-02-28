@@ -11,54 +11,51 @@ function Toast({ message, visible }) {
   )
 }
 
-// ─── Profile Menu ─────────────────────────────────────────────────────────────
+// ─── Profile Drawer ───────────────────────────────────────────────────────────
 function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
   const [open, setOpen] = useState(false)
-  const menuRef = useRef(null)
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
-  }, [])
-
   const initials = session.user.email.slice(0, 2).toUpperCase()
 
   return (
-    <div className="profile-wrapper" ref={menuRef}>
-      <button className="profile-avatar" onClick={() => setOpen(!open)}>
+    <>
+      {/* Avatar fixo no canto */}
+      <button className="profile-avatar" onClick={() => setOpen(true)}>
         {initials}
       </button>
 
-      {open && (
-        <div className="profile-dropdown">
-          <div className="profile-info">
-            <div className="profile-info-email">{session.user.email}</div>
-            <div className="profile-info-role">
-              {isAdmin ? '👑 Administrador' : '👤 Usuário Padrão'}
-            </div>
+      {/* Overlay escuro */}
+      {open && <div className="drawer-overlay" onClick={() => setOpen(false)} />}
+
+      {/* Drawer lateral */}
+      <div className={`drawer ${open ? 'open' : ''}`}>
+
+        {/* Header do drawer */}
+        <div className="drawer-header">
+          <div className="drawer-avatar-big">{initials}</div>
+          <div className="drawer-user-info">
+            <div className="drawer-email">{session.user.email}</div>
+            <div className="drawer-role">{isAdmin ? '👑 Administrador' : '👤 Usuário Padrão'}</div>
           </div>
-
-          <div className="profile-divider" />
-
-          <button className="profile-item" onClick={() => { onLogout(); setOpen(false) }}>
-            🚪 Sair
-          </button>
-
-          <button className="profile-item danger" onClick={() => { onDeleteAccount(); setOpen(false) }}>
-            🗑 Excluir conta
-          </button>
+          <button className="drawer-close" onClick={() => setOpen(false)}>✕</button>
         </div>
-      )}
-    </div>
+
+        <div className="drawer-divider" />
+
+        {/* Menu items */}
+        <div className="drawer-section-label">CONTA</div>
+
+        <button className="drawer-item" onClick={() => { onLogout(); setOpen(false) }}>
+          <span className="drawer-item-icon">🚪</span>
+          <span>Sair</span>
+        </button>
+
+        <button className="drawer-item danger" onClick={() => { onDeleteAccount(); setOpen(false) }}>
+          <span className="drawer-item-icon">🗑</span>
+          <span>Excluir conta</span>
+        </button>
+
+      </div>
+    </>
   )
 }
 
@@ -321,5 +318,5 @@ export default function App() {
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-          }
-  
+        }
+          
