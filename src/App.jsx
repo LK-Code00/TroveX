@@ -13,27 +13,69 @@ function Toast({ message, visible }) {
 
 // ─── Profile Drawer ───────────────────────────────────────────────────────────
 function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
-  const [open, setOpen] = useState(false)
-  const initials = session.user.email.slice(0, 2).toUpperCase()
+  const [open, setOpen]       = useState(false)
+  const [photo, setPhoto]     = useState(session.user.user_metadata?.avatar_url || null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef          = useRef(null)
+  const initials              = session.user.email.slice(0, 2).toUpperCase()
+
+  async function handlePhotoChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result
+      const { error } = await supabaseClient.auth.updateUser({
+        data: { ...session.user.user_metadata, avatar_url: base64 }
+      })
+      if (!error) setPhoto(base64)
+      setUploading(false)
+    }
+    reader.readAsDataURL(file)
+  }
 
   return (
     <>
-      <button className="profile-avatar" onClick={() => setOpen(true)}>
-        {initials}
+      {/* Botão hamburguer */}
+      <button className="hamburger-btn" onClick={() => setOpen(true)}>
+        <span /><span /><span />
       </button>
 
       {open && <div className="drawer-overlay" onClick={() => setOpen(false)} />}
 
       <div className={`drawer ${open ? 'open' : ''}`}>
+
+        {/* Header com foto */}
         <div className="drawer-header">
-          <div className="drawer-avatar-big">{initials}</div>
+          <div className="drawer-avatar-wrap" onClick={() => fileInputRef.current.click()}>
+            {photo
+              ? <img src={photo} alt="avatar" className="drawer-avatar-img" />
+              : <div className="drawer-avatar-big">{initials}</div>
+            }
+            <div className="drawer-avatar-overlay">
+              {uploading ? '...' : '📷'}
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handlePhotoChange}
+          />
+
           <div className="drawer-user-info">
             <div className="drawer-email">{session.user.email}</div>
             <div className="drawer-role">
               <span className="drawer-role-dot" />
               {isAdmin ? 'Administrador' : 'Usuário Padrão'}
             </div>
+            <div className="drawer-photo-hint">Toque na foto para alterar</div>
           </div>
+
           <button className="drawer-close" onClick={() => setOpen(false)}>✕</button>
         </div>
 
@@ -417,5 +459,5 @@ export default function App() {
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-              }
-            
+               }
+              
