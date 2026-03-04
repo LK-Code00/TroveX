@@ -107,6 +107,8 @@ function isValidUrl(text) {
 
 // ─── Image Uploader ───────────────────────────────────────────────────────────
 function ImageUploader({ value, onChange }) {
+  const [mode, setMode]       = useState(null) // null | 'url' | 'gallery'
+  const [urlInput, setUrlInput] = useState(value || '')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
 
@@ -114,55 +116,83 @@ function ImageUploader({ value, onChange }) {
     const file = e.target.files[0]
     if (!file) return
     setUploading(true)
-
     const ext      = file.name.split('.').pop()
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
     const { data, error } = await supabaseClient.storage
       .from('images')
       .upload(filename, file, { cacheControl: '3600', upsert: false })
-
     if (!error) {
       const { data: urlData } = supabaseClient.storage
-        .from('images')
-        .getPublicUrl(data.path)
+        .from('images').getPublicUrl(data.path)
       onChange(urlData.publicUrl)
+    } else {
+      alert('Erro ao enviar imagem. Tente por link.')
     }
     setUploading(false)
   }
+
+  function handleUrlConfirm() {
+    if (urlInput.trim()) onChange(urlInput.trim())
+    setMode(null)
+  }
+
+  function handleRemove() {
+    onChange('')
+    setUrlInput('')
+    setMode(null)
+  }
+
+  if (value) return (
+    <div className="img-uploader-preview">
+      <img src={value} alt="preview" onError={e => e.target.style.opacity=0.3} />
+      <button className="img-uploader-remove" onClick={handleRemove}>✕ Remover</button>
+    </div>
+  )
+
+  if (mode === 'url') return (
+    <div className="img-uploader-url">
+      <input
+        className="auth-input"
+        placeholder="Cole a URL da imagem..."
+        value={urlInput}
+        onChange={e => setUrlInput(e.target.value)}
+        autoFocus
+      />
+      <div className="img-uploader-url-actions">
+        <button className="modal-btn-cancel" onClick={() => setMode(null)}>Cancelar</button>
+        <button className="modal-btn-save" onClick={handleUrlConfirm}>Confirmar</button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="img-uploader">
       <input ref={fileRef} type="file" accept="image/*"
         style={{ display: 'none' }} onChange={handleFile} />
 
-      {value ? (
-        <div className="img-uploader-preview">
-          <img src={value} alt="preview" />
-          <button className="img-uploader-remove" onClick={() => onChange('')}>
-            ✕ Remover
+      {uploading ? (
+        <div className="img-uploader-loading">Enviando imagem...</div>
+      ) : (
+        <div className="img-uploader-options">
+          <button type="button" className="img-uploader-option"
+            onClick={() => fileRef.current.click()}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Da galeria</span>
+          </button>
+
+          <button type="button" className="img-uploader-option"
+            onClick={() => setMode('url')}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span>Por link</span>
           </button>
         </div>
-      ) : (
-        <button
-          type="button"
-          className="img-uploader-btn"
-          onClick={() => fileRef.current.click()}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <span>Enviando...</span>
-          ) : (
-            <>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
-              </svg>
-              <span>Selecionar imagem da galeria</span>
-            </>
-          )}
-        </button>
       )}
     </div>
   )
@@ -352,8 +382,14 @@ export default function App() {
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setSession(null)
+      } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        setSession(session)
+      } else {
+        setSession(session)
+      }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -396,7 +432,13 @@ export default function App() {
   const isAdmin       = userRole === 'admin'
   const currentUserId = session?.user?.id
 
-  async function handleLogout() { await supabaseClient.auth.signOut() }
+  async function handleLogout() {
+    try {
+      await supabaseClient.auth.signOut()
+    } catch {
+      setSession(null)
+    }
+  }
 
   async function handleDeleteAccount() {
     if (!window.confirm('Tem certeza? Essa ação não pode ser desfeita.')) return
@@ -408,12 +450,15 @@ export default function App() {
   async function fetchScripts() {
     setLoading(true); setDbError(null)
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession()
-      if (!session) { await supabaseClient.auth.signOut(); return }
+      const { data: { session: currentSession } } = await supabaseClient.auth.getSession()
+      if (!currentSession) {
+        await supabaseClient.auth.signOut()
+        return
+      }
       const { data, error } = await supabaseClient
         .from('scripts').select('*').order('created_at', { ascending: false })
       if (error) {
-        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        if (error.message?.includes('JWT') || error.code === 'PGRST301') {
           await supabaseClient.auth.signOut()
           return
         }
@@ -423,7 +468,7 @@ export default function App() {
     } catch (err) {
       setDbError('Não foi possível conectar ao banco de dados.')
     } finally { setLoading(false) }
-          }
+  }
 
   async function addScript() {
     if (!isAdmin || !title || !content) return
