@@ -318,12 +318,6 @@ export default function App() {
   if (selectedScript) {
     return (
       <>
-        <ProfileMenu
-          session={session}
-          isAdmin={isAdmin}
-          onLogout={handleLogout}
-          onDeleteAccount={handleDeleteAccount}
-        />
         <ScriptDetail
           script={selectedScript}
           onBack={() => setSelectedScript(null)}
@@ -423,4 +417,5 @@ export default function App() {
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-      }
+              }
+            
