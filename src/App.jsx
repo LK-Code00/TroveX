@@ -25,7 +25,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
       {open && <div className="drawer-overlay" onClick={() => setOpen(false)} />}
 
       <div className={`drawer ${open ? 'open' : ''}`}>
-
         <div className="drawer-header">
           <div className="drawer-avatar-big">{initials}</div>
           <div className="drawer-user-info">
@@ -39,7 +38,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
         </div>
 
         <div className="drawer-divider" />
-
         <div className="drawer-section-label">CONTA</div>
 
         <div className="drawer-actions">
@@ -67,7 +65,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
           <span>TroveX</span>
           <span>{isAdmin ? 'Admin' : 'Standard'}</span>
         </div>
-
       </div>
     </>
   )
@@ -83,46 +80,119 @@ function isValidUrl(text) {
   }
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
-function ScriptCard({ script, onDelete, onCopy, isAdmin, currentUserId }) {
+// ─── Tela de Detalhe do Script ────────────────────────────────────────────────
+function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId }) {
   const isLink  = isValidUrl(script.content)
   const isOwner = script.created_by === currentUserId
 
   return (
-    <div className="card">
-      <div className="card-title">{script.title}</div>
-      <pre>{script.content}</pre>
-      <div className="card-buttons">
-        <button className="copy-btn" onClick={() => onCopy(script.content)}>
-          ⎘ Copiar
+    <div className="detail-page">
+
+      {/* Header com botão voltar */}
+      <div className="detail-header">
+        <button className="detail-back" onClick={onBack}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Voltar
         </button>
+      </div>
+
+      {/* Título */}
+      <div className="detail-card">
+        <div className="detail-type-badge">
+          {isLink ? 'Link' : 'Script'}
+        </div>
+        <h2 className="detail-title">{script.title}</h2>
+        <p className="detail-date">
+          {new Date(script.created_at).toLocaleDateString('pt-BR', {
+            day: '2-digit', month: 'long', year: 'numeric'
+          })}
+        </p>
+      </div>
+
+      {/* Descrição */}
+      {script.description && (
+        <div className="detail-card">
+          <div className="detail-section-label">Descrição</div>
+          <p className="detail-description">{script.description}</p>
+        </div>
+      )}
+
+      {/* Conteúdo */}
+      <div className="detail-card">
+        <div className="detail-section-label">Conteúdo</div>
+        <pre className="detail-pre">{script.content}</pre>
+      </div>
+
+      {/* Ações */}
+      <div className="detail-actions">
+        <button className="detail-btn-copy" onClick={() => onCopy(script.content)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copiar conteúdo
+        </button>
+
         {isLink && (
-          <button className="link-btn" onClick={() => window.open(script.content.trim(), '_blank')}>
-            🔗 Abrir
+          <button className="detail-btn-link" onClick={() => window.open(script.content.trim(), '_blank')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Abrir link
           </button>
         )}
+
         {isAdmin && isOwner && (
-          <button className="delete" onClick={() => onDelete(script.id)}>
-            🗑 Excluir
+          <button className="detail-btn-delete" onClick={() => { onDelete(script.id); onBack() }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Excluir
           </button>
         )}
       </div>
+
+    </div>
+  )
+}
+
+// ─── Card da lista ────────────────────────────────────────────────────────────
+function ScriptCard({ script, onClick }) {
+  const isLink = isValidUrl(script.content)
+
+  return (
+    <div className="card" onClick={onClick} style={{ cursor: 'pointer' }}>
+      <div className="card-type-tag">{isLink ? 'Link' : 'Script'}</div>
+      <div className="card-title">{script.title}</div>
+      {script.description && (
+        <p className="card-description">{script.description}</p>
+      )}
+      <pre className="card-preview">{script.content}</pre>
+      <div className="card-hint">Toque para ver detalhes →</div>
     </div>
   )
 }
 
 // ─── App principal ────────────────────────────────────────────────────────────
 export default function App() {
-  const [session, setSession]   = useState(undefined)
-  const [scripts, setScripts]   = useState([])
-  const [search, setSearch]     = useState('')
-  const [title, setTitle]       = useState('')
-  const [content, setContent]   = useState('')
-  const [toast, setToast]       = useState({ message: '', visible: false })
-  const [loading, setLoading]   = useState(true)
-  const [dbError, setDbError]   = useState(null)
-  const toastTimer              = useRef(null)
-  const h1Ref                   = useRef(null)
+  const [session, setSession]       = useState(undefined)
+  const [scripts, setScripts]       = useState([])
+  const [search, setSearch]         = useState('')
+  const [title, setTitle]           = useState('')
+  const [content, setContent]       = useState('')
+  const [description, setDescription] = useState('')
+  const [toast, setToast]           = useState({ message: '', visible: false })
+  const [loading, setLoading]       = useState(true)
+  const [dbError, setDbError]       = useState(null)
+  const [selectedScript, setSelectedScript] = useState(null)
+  const toastTimer                  = useRef(null)
+  const h1Ref                       = useRef(null)
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
@@ -183,12 +253,8 @@ export default function App() {
     const confirm = window.confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.')
     if (!confirm) return
     const { error } = await supabaseClient.rpc('delete_user')
-    if (error) {
-      showToast('❌ Erro ao excluir conta')
-    } else {
-      await supabaseClient.auth.signOut()
-      showToast('✓ Conta excluída')
-    }
+    if (error) showToast('Erro ao excluir conta')
+    else { await supabaseClient.auth.signOut(); showToast('Conta excluída') }
   }
 
   async function fetchScripts() {
@@ -210,25 +276,26 @@ export default function App() {
   async function addScript() {
     if (!isAdmin || !title || !content) return
     const { error } = await supabaseClient
-      .from('scripts').insert([{ title, content, created_by: currentUserId }])
+      .from('scripts')
+      .insert([{ title, content, description, created_by: currentUserId }])
     if (!error) {
-      setTitle(''); setContent('')
+      setTitle(''); setContent(''); setDescription('')
       fetchScripts()
-      showToast('✓ Script adicionado!')
+      showToast('Script adicionado!')
     } else {
-      showToast('❌ Erro ao adicionar script')
+      showToast('Erro ao adicionar script')
     }
   }
 
   async function deleteScript(id) {
     const { error } = await supabaseClient.from('scripts').delete().eq('id', id)
-    if (!error) { fetchScripts(); showToast('🗑 Script excluído') }
-    else showToast('❌ Erro ao excluir script')
+    if (!error) { fetchScripts(); showToast('Script excluído') }
+    else showToast('Erro ao excluir script')
   }
 
   async function copyScript(text) {
     await navigator.clipboard.writeText(text)
-    showToast('✓ Copiado!')
+    showToast('Copiado!')
   }
 
   const filtered = scripts.filter((s) =>
@@ -239,7 +306,6 @@ export default function App() {
     return (
       <div className="login-wrapper">
         <div className="login-card">
-          <div className="login-icon">⏳</div>
           <p className="login-sub">Carregando...</p>
         </div>
       </div>
@@ -248,10 +314,32 @@ export default function App() {
 
   if (!session) return <Login />
 
+  // ─── Tela de detalhe ────────────────────────────────────────────────────────
+  if (selectedScript) {
+    return (
+      <>
+        <ProfileMenu
+          session={session}
+          isAdmin={isAdmin}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
+        />
+        <ScriptDetail
+          script={selectedScript}
+          onBack={() => setSelectedScript(null)}
+          onDelete={deleteScript}
+          onCopy={copyScript}
+          isAdmin={isAdmin}
+          currentUserId={currentUserId}
+        />
+        <Toast message={toast.message} visible={toast.visible} />
+      </>
+    )
+  }
+
+  // ─── Tela principal ──────────────────────────────────────────────────────────
   return (
     <div className="container">
-
-      {/* Menu de perfil no canto superior direito */}
       <ProfileMenu
         session={session}
         isAdmin={isAdmin}
@@ -280,6 +368,12 @@ export default function App() {
             placeholder="Título"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+          />
+          <textarea
+            placeholder="Descrição (opcional)"
+            value={description}
+            rows={2}
+            onChange={(e) => setDescription(e.target.value)}
           />
           <textarea
             placeholder="Conteúdo ou link"
@@ -321,10 +415,7 @@ export default function App() {
           <ScriptCard
             key={script.id}
             script={script}
-            onDelete={deleteScript}
-            onCopy={copyScript}
-            isAdmin={isAdmin}
-            currentUserId={currentUserId}
+            onClick={() => setSelectedScript(script)}
           />
         ))}
       </div>
@@ -332,4 +423,4 @@ export default function App() {
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-            }
+      }
