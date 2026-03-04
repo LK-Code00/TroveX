@@ -18,41 +18,55 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
 
   return (
     <>
-      {/* Avatar fixo no canto */}
       <button className="profile-avatar" onClick={() => setOpen(true)}>
         {initials}
       </button>
 
-      {/* Overlay escuro */}
       {open && <div className="drawer-overlay" onClick={() => setOpen(false)} />}
 
-      {/* Drawer lateral */}
       <div className={`drawer ${open ? 'open' : ''}`}>
 
-        {/* Header do drawer */}
         <div className="drawer-header">
           <div className="drawer-avatar-big">{initials}</div>
           <div className="drawer-user-info">
             <div className="drawer-email">{session.user.email}</div>
-            <div className="drawer-role">{isAdmin ? '👑 Administrador' : '👤 Usuário Padrão'}</div>
+            <div className="drawer-role">
+              <span className="drawer-role-dot" />
+              {isAdmin ? 'Administrador' : 'Usuário Padrão'}
+            </div>
           </div>
           <button className="drawer-close" onClick={() => setOpen(false)}>✕</button>
         </div>
 
         <div className="drawer-divider" />
 
-        {/* Menu items */}
         <div className="drawer-section-label">CONTA</div>
 
-        <button className="drawer-item" onClick={() => { onLogout(); setOpen(false) }}>
-          <span className="drawer-item-icon">🚪</span>
-          <span>Sair</span>
-        </button>
+        <div className="drawer-actions">
+          <button className="drawer-item" onClick={() => { onLogout(); setOpen(false) }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>Sair da conta</span>
+          </button>
 
-        <button className="drawer-item danger" onClick={() => { onDeleteAccount(); setOpen(false) }}>
-          <span className="drawer-item-icon">🗑</span>
-          <span>Excluir conta</span>
-        </button>
+          <button className="drawer-item danger" onClick={() => { onDeleteAccount(); setOpen(false) }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            <span>Excluir conta</span>
+          </button>
+        </div>
+
+        <div className="drawer-footer">
+          <span>TroveX</span>
+          <span>{isAdmin ? 'Admin' : 'Standard'}</span>
+        </div>
 
       </div>
     </>
@@ -318,5 +332,4 @@ export default function App() {
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-        }
-          
+            }
