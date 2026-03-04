@@ -523,4 +523,19 @@ export default function App() {
             <button onClick={fetchScripts}>Tentar novamente</button>
           </div>
         )}
-  
+        {!loading && !dbError && filtered.length === 0 && (
+          <div className="empty-state">
+            <span className="icon">📭</span>Nenhum script encontrado.
+            {isAdmin && <><br />Adicione seu primeiro script acima!</>}
+          </div>
+        )}
+        {!loading && !dbError && filtered.map(script => (
+          <ScriptCard key={script.id} script={script}
+            onClick={() => setSelectedScript(script)} />
+        ))}
+      </div>
+
+      <Toast message={toast.message} visible={toast.visible} />
+    </div>
+  )
+}
