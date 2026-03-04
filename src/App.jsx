@@ -23,7 +23,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
     const file = e.target.files[0]
     if (!file) return
     setUploading(true)
-
     const reader = new FileReader()
     reader.onload = async (ev) => {
       const base64 = ev.target.result
@@ -38,7 +37,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
 
   return (
     <>
-      {/* Botão hamburguer */}
       <button className="hamburger-btn" onClick={() => setOpen(true)}>
         <span /><span /><span />
       </button>
@@ -46,26 +44,17 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
       {open && <div className="drawer-overlay" onClick={() => setOpen(false)} />}
 
       <div className={`drawer ${open ? 'open' : ''}`}>
-
-        {/* Header com foto */}
         <div className="drawer-header">
           <div className="drawer-avatar-wrap" onClick={() => fileInputRef.current.click()}>
             {photo
               ? <img src={photo} alt="avatar" className="drawer-avatar-img" />
               : <div className="drawer-avatar-big">{initials}</div>
             }
-            <div className="drawer-avatar-overlay">
-              {uploading ? '...' : '📷'}
-            </div>
+            <div className="drawer-avatar-overlay">{uploading ? '...' : '📷'}</div>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={handlePhotoChange}
-          />
+          <input ref={fileInputRef} type="file" accept="image/*"
+            style={{ display: 'none' }} onChange={handlePhotoChange} />
 
           <div className="drawer-user-info">
             <div className="drawer-email">{session.user.email}</div>
@@ -75,7 +64,6 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
             </div>
             <div className="drawer-photo-hint">Toque na foto para alterar</div>
           </div>
-
           <button className="drawer-close" onClick={() => setOpen(false)}>✕</button>
         </div>
 
@@ -114,23 +102,16 @@ function ProfileMenu({ session, isAdmin, onLogout, onDeleteAccount }) {
 
 // ─── Verifica URL válida ───────────────────────────────────────────────────────
 function isValidUrl(text) {
-  try {
-    new URL(text.trim())
-    return true
-  } catch {
-    return false
-  }
+  try { new URL(text.trim()); return true } catch { return false }
 }
 
-// ─── Tela de Detalhe do Script ────────────────────────────────────────────────
-function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId }) {
+// ─── Tela de Detalhe ──────────────────────────────────────────────────────────
+function ScriptDetail({ script, onBack, onDelete, onCopy, onEdit, isAdmin, currentUserId }) {
   const isLink  = isValidUrl(script.content)
   const isOwner = script.created_by === currentUserId
 
   return (
     <div className="detail-page">
-
-      {/* Header com botão voltar */}
       <div className="detail-header">
         <button className="detail-back" onClick={onBack}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,13 +119,26 @@ function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId
           </svg>
           Voltar
         </button>
+        {isAdmin && isOwner && (
+          <button className="detail-edit-btn" onClick={() => onEdit(script)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Editar
+          </button>
+        )}
       </div>
 
-      {/* Título */}
-      <div className="detail-card">
-        <div className="detail-type-badge">
-          {isLink ? 'Link' : 'Script'}
+      {/* Imagem de capa */}
+      {script.image_url && (
+        <div className="detail-cover">
+          <img src={script.image_url} alt={script.title} />
         </div>
+      )}
+
+      <div className="detail-card">
+        <div className="detail-type-badge">{isLink ? 'Link' : 'Script'}</div>
         <h2 className="detail-title">{script.title}</h2>
         <p className="detail-date">
           {new Date(script.created_at).toLocaleDateString('pt-BR', {
@@ -153,7 +147,6 @@ function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId
         </p>
       </div>
 
-      {/* Descrição */}
       {script.description && (
         <div className="detail-card">
           <div className="detail-section-label">Descrição</div>
@@ -161,13 +154,11 @@ function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId
         </div>
       )}
 
-      {/* Conteúdo */}
       <div className="detail-card">
         <div className="detail-section-label">Conteúdo</div>
         <pre className="detail-pre">{script.content}</pre>
       </div>
 
-      {/* Ações */}
       <div className="detail-actions">
         <button className="detail-btn-copy" onClick={() => onCopy(script.content)}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -199,7 +190,65 @@ function ScriptDetail({ script, onBack, onDelete, onCopy, isAdmin, currentUserId
           </button>
         )}
       </div>
+    </div>
+  )
+}
 
+// ─── Modal de Edição ──────────────────────────────────────────────────────────
+function EditModal({ script, onSave, onClose }) {
+  const [title, setTitle]       = useState(script.title)
+  const [content, setContent]   = useState(script.content)
+  const [description, setDescription] = useState(script.description || '')
+  const [imageUrl, setImageUrl] = useState(script.image_url || '')
+  const [saving, setSaving]     = useState(false)
+
+  async function handleSave() {
+    if (!title || !content) return
+    setSaving(true)
+    await onSave(script.id, { title, content, description, image_url: imageUrl })
+    setSaving(false)
+    onClose()
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Editar</h3>
+          <button className="drawer-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          <label className="modal-label">Título</label>
+          <input className="auth-input" value={title}
+            onChange={e => setTitle(e.target.value)} placeholder="Título" />
+
+          <label className="modal-label">Descrição</label>
+          <textarea className="auth-input modal-textarea" value={description}
+            onChange={e => setDescription(e.target.value)} placeholder="Descrição (opcional)" rows={2} />
+
+          <label className="modal-label">Conteúdo ou link</label>
+          <textarea className="auth-input modal-textarea" value={content}
+            onChange={e => setContent(e.target.value)} placeholder="Conteúdo ou link" rows={3} />
+
+          <label className="modal-label">URL da imagem (opcional)</label>
+          <input className="auth-input" value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)} placeholder="https://..." />
+
+          {imageUrl && (
+            <div className="modal-img-preview">
+              <img src={imageUrl} alt="preview" onError={e => e.target.style.display='none'} />
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button className="modal-btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="modal-btn-save" onClick={handleSave} disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -209,32 +258,41 @@ function ScriptCard({ script, onClick }) {
   const isLink = isValidUrl(script.content)
 
   return (
-    <div className="card" onClick={onClick} style={{ cursor: 'pointer' }}>
-      <div className="card-type-tag">{isLink ? 'Link' : 'Script'}</div>
-      <div className="card-title">{script.title}</div>
-      {script.description && (
-        <p className="card-description">{script.description}</p>
+    <div className="card" onClick={onClick}>
+      {script.image_url && (
+        <div className="card-image">
+          <img src={script.image_url} alt={script.title}
+            onError={e => e.target.parentElement.style.display='none'} />
+        </div>
       )}
-      <pre className="card-preview">{script.content}</pre>
-      <div className="card-hint">Toque para ver detalhes →</div>
+      <div className="card-body">
+        <div className="card-type-tag">{isLink ? 'Link' : 'Script'}</div>
+        <div className="card-title">{script.title}</div>
+        {script.description && (
+          <p className="card-description">{script.description}</p>
+        )}
+        <div className="card-hint">Toque para ver detalhes →</div>
+      </div>
     </div>
   )
 }
 
 // ─── App principal ────────────────────────────────────────────────────────────
 export default function App() {
-  const [session, setSession]       = useState(undefined)
-  const [scripts, setScripts]       = useState([])
-  const [search, setSearch]         = useState('')
-  const [title, setTitle]           = useState('')
-  const [content, setContent]       = useState('')
-  const [description, setDescription] = useState('')
-  const [toast, setToast]           = useState({ message: '', visible: false })
-  const [loading, setLoading]       = useState(true)
-  const [dbError, setDbError]       = useState(null)
+  const [session, setSession]           = useState(undefined)
+  const [scripts, setScripts]           = useState([])
+  const [search, setSearch]             = useState('')
+  const [title, setTitle]               = useState('')
+  const [content, setContent]           = useState('')
+  const [description, setDescription]   = useState('')
+  const [imageUrl, setImageUrl]         = useState('')
+  const [toast, setToast]               = useState({ message: '', visible: false })
+  const [loading, setLoading]           = useState(true)
+  const [dbError, setDbError]           = useState(null)
   const [selectedScript, setSelectedScript] = useState(null)
-  const toastTimer                  = useRef(null)
-  const h1Ref                       = useRef(null)
+  const [editingScript, setEditingScript]   = useState(null)
+  const toastTimer = useRef(null)
+  const h1Ref      = useRef(null)
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
@@ -244,18 +302,14 @@ export default function App() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (session) fetchScripts()
-  }, [session])
+  useEffect(() => { if (session) fetchScripts() }, [session])
 
   useEffect(() => {
     const h1 = h1Ref.current
     if (!h1) return
     const colors = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#facc15']
     const handleClick = (e) => {
-      h1.classList.remove('clicked')
-      void h1.offsetWidth
-      h1.classList.add('clicked')
+      h1.classList.remove('clicked'); void h1.offsetWidth; h1.classList.add('clicked')
       setTimeout(() => h1.classList.remove('clicked'), 600)
       for (let i = 0; i < 18; i++) {
         const sp = document.createElement('span')
@@ -263,12 +317,11 @@ export default function App() {
         const angle = Math.random() * 2 * Math.PI
         const dist  = 50 + Math.random() * 90
         sp.style.cssText = `
-          left: ${e.clientX - 3}px; top: ${e.clientY - 3}px;
-          background: ${colors[Math.floor(Math.random() * colors.length)]};
-          width: ${4 + Math.random() * 6}px; height: ${4 + Math.random() * 6}px;
-          box-shadow: 0 0 6px currentColor;
-          --tx: ${Math.cos(angle) * dist}px; --ty: ${Math.sin(angle) * dist}px;
-        `
+          left:${e.clientX-3}px;top:${e.clientY-3}px;
+          background:${colors[Math.floor(Math.random()*colors.length)]};
+          width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;
+          box-shadow:0 0 6px currentColor;
+          --tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;`
         document.body.appendChild(sp)
         setTimeout(() => sp.remove(), 750)
       }
@@ -280,53 +333,50 @@ export default function App() {
   function showToast(message) {
     clearTimeout(toastTimer.current)
     setToast({ message, visible: true })
-    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 2200)
+    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, visible: false })), 2200)
   }
 
   const userRole      = session?.user?.user_metadata?.role ?? 'user'
   const isAdmin       = userRole === 'admin'
   const currentUserId = session?.user?.id
 
-  async function handleLogout() {
-    await supabaseClient.auth.signOut()
-  }
+  async function handleLogout() { await supabaseClient.auth.signOut() }
 
   async function handleDeleteAccount() {
-    const confirm = window.confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.')
-    if (!confirm) return
+    if (!window.confirm('Tem certeza? Essa ação não pode ser desfeita.')) return
     const { error } = await supabaseClient.rpc('delete_user')
     if (error) showToast('Erro ao excluir conta')
     else { await supabaseClient.auth.signOut(); showToast('Conta excluída') }
   }
 
   async function fetchScripts() {
-    setLoading(true)
-    setDbError(null)
+    setLoading(true); setDbError(null)
     try {
       const { data, error } = await supabaseClient
         .from('scripts').select('*').order('created_at', { ascending: false })
       if (error) throw error
       setScripts(data)
     } catch (err) {
-      console.error('Erro ao buscar scripts:', err)
       setDbError('Não foi possível conectar ao banco de dados.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function addScript() {
     if (!isAdmin || !title || !content) return
-    const { error } = await supabaseClient
-      .from('scripts')
-      .insert([{ title, content, description, created_by: currentUserId }])
+    const { error } = await supabaseClient.from('scripts')
+      .insert([{ title, content, description, image_url: imageUrl, created_by: currentUserId }])
     if (!error) {
-      setTitle(''); setContent(''); setDescription('')
-      fetchScripts()
-      showToast('Script adicionado!')
-    } else {
-      showToast('Erro ao adicionar script')
-    }
+      setTitle(''); setContent(''); setDescription(''); setImageUrl('')
+      fetchScripts(); showToast('Script adicionado!')
+    } else showToast('Erro ao adicionar script')
+  }
+
+  async function updateScript(id, data) {
+    const { error } = await supabaseClient.from('scripts').update(data).eq('id', id)
+    if (!error) {
+      fetchScripts(); showToast('Script atualizado!')
+      if (selectedScript?.id === id) setSelectedScript(prev => ({ ...prev, ...data }))
+    } else showToast('Erro ao atualizar script')
   }
 
   async function deleteScript(id) {
@@ -340,48 +390,46 @@ export default function App() {
     showToast('Copiado!')
   }
 
-  const filtered = scripts.filter((s) =>
+  const filtered = scripts.filter(s =>
     s.title.toLowerCase().includes(search.toLowerCase())
   )
 
-  if (session === undefined) {
-    return (
-      <div className="login-wrapper">
-        <div className="login-card">
-          <p className="login-sub">Carregando...</p>
-        </div>
-      </div>
-    )
-  }
+  if (session === undefined) return (
+    <div className="login-wrapper">
+      <div className="login-card"><p className="login-sub">Carregando...</p></div>
+    </div>
+  )
 
   if (!session) return <Login />
 
-  // ─── Tela de detalhe ────────────────────────────────────────────────────────
-  if (selectedScript) {
-    return (
-      <>
-        <ScriptDetail
-          script={selectedScript}
-          onBack={() => setSelectedScript(null)}
-          onDelete={deleteScript}
-          onCopy={copyScript}
-          isAdmin={isAdmin}
-          currentUserId={currentUserId}
+  // Tela de detalhe
+  if (selectedScript) return (
+    <>
+      <ScriptDetail
+        script={selectedScript}
+        onBack={() => setSelectedScript(null)}
+        onDelete={deleteScript}
+        onCopy={copyScript}
+        onEdit={setEditingScript}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+      />
+      {editingScript && (
+        <EditModal
+          script={editingScript}
+          onSave={updateScript}
+          onClose={() => setEditingScript(null)}
         />
-        <Toast message={toast.message} visible={toast.visible} />
-      </>
-    )
-  }
+      )}
+      <Toast message={toast.message} visible={toast.visible} />
+    </>
+  )
 
-  // ─── Tela principal ──────────────────────────────────────────────────────────
+  // Tela principal
   return (
     <div className="container">
-      <ProfileMenu
-        session={session}
-        isAdmin={isAdmin}
-        onLogout={handleLogout}
-        onDeleteAccount={handleDeleteAccount}
-      />
+      <ProfileMenu session={session} isAdmin={isAdmin}
+        onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} />
 
       <div className="header">
         <h1 ref={h1Ref}>TroveX</h1>
@@ -389,34 +437,26 @@ export default function App() {
       </div>
 
       <div className="top-bar">
-        <input
-          type="text"
-          placeholder="🔍  Pesquisar..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <input type="text" placeholder="🔍  Pesquisar..."
+          value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {isAdmin && (
         <div className="top-bar">
-          <input
-            type="text"
-            placeholder="Título"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <textarea
-            placeholder="Descrição (opcional)"
-            value={description}
-            rows={2}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <textarea
-            placeholder="Conteúdo ou link"
-            value={content}
-            rows={3}
-            onChange={(e) => setContent(e.target.value)}
-          />
+          <input type="text" placeholder="Título"
+            value={title} onChange={e => setTitle(e.target.value)} />
+          <textarea placeholder="Descrição (opcional)" value={description}
+            rows={2} onChange={e => setDescription(e.target.value)} />
+          <textarea placeholder="Conteúdo ou link" value={content}
+            rows={3} onChange={e => setContent(e.target.value)} />
+          <input type="text" placeholder="URL da imagem (opcional)"
+            value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
+          {imageUrl && (
+            <div className="form-img-preview">
+              <img src={imageUrl} alt="preview"
+                onError={e => e.target.parentElement.style.display='none'} />
+            </div>
+          )}
           <button onClick={addScript}>＋ Adicionar</button>
         </div>
       )}
@@ -427,37 +467,27 @@ export default function App() {
       </div>
 
       <div className="grid">
-        {loading && (
-          <div className="empty-state">
-            <span className="icon">⏳</span>
-            Carregando scripts...
-          </div>
-        )}
+        {loading && <div className="empty-state"><span className="icon">⏳</span>Carregando scripts...</div>}
         {!loading && dbError && (
           <div className="empty-state">
-            <span className="icon">⚠️</span>
-            {dbError}<br /><br />
+            <span className="icon">⚠️</span>{dbError}<br /><br />
             <button onClick={fetchScripts}>Tentar novamente</button>
           </div>
         )}
         {!loading && !dbError && filtered.length === 0 && (
           <div className="empty-state">
-            <span className="icon">📭</span>
-            Nenhum script encontrado.
+            <span className="icon">📭</span>Nenhum script encontrado.
             {isAdmin && <><br />Adicione seu primeiro script acima!</>}
           </div>
         )}
-        {!loading && !dbError && filtered.map((script) => (
-          <ScriptCard
-            key={script.id}
-            script={script}
-            onClick={() => setSelectedScript(script)}
-          />
+        {!loading && !dbError && filtered.map(script => (
+          <ScriptCard key={script.id} script={script}
+            onClick={() => setSelectedScript(script)} />
         ))}
       </div>
 
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   )
-               }
-              
+          }
+                                                   
