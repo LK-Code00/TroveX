@@ -408,14 +408,22 @@ export default function App() {
   async function fetchScripts() {
     setLoading(true); setDbError(null)
     try {
+      const { data: { session } } = await supabaseClient.auth.getSession()
+      if (!session) { await supabaseClient.auth.signOut(); return }
       const { data, error } = await supabaseClient
         .from('scripts').select('*').order('created_at', { ascending: false })
-      if (error) throw error
+      if (error) {
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+          await supabaseClient.auth.signOut()
+          return
+        }
+        throw error
+      }
       setScripts(data)
     } catch (err) {
       setDbError('Não foi possível conectar ao banco de dados.')
     } finally { setLoading(false) }
-  }
+          }
 
   async function addScript() {
     if (!isAdmin || !title || !content) return
