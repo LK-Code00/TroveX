@@ -105,6 +105,69 @@ function isValidUrl(text) {
   try { new URL(text.trim()); return true } catch { return false }
 }
 
+// ─── Image Uploader ───────────────────────────────────────────────────────────
+function ImageUploader({ value, onChange }) {
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
+
+  async function handleFile(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+
+    const ext      = file.name.split('.').pop()
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+    const { data, error } = await supabaseClient.storage
+      .from('images')
+      .upload(filename, file, { cacheControl: '3600', upsert: false })
+
+    if (!error) {
+      const { data: urlData } = supabaseClient.storage
+        .from('images')
+        .getPublicUrl(data.path)
+      onChange(urlData.publicUrl)
+    }
+    setUploading(false)
+  }
+
+  return (
+    <div className="img-uploader">
+      <input ref={fileRef} type="file" accept="image/*"
+        style={{ display: 'none' }} onChange={handleFile} />
+
+      {value ? (
+        <div className="img-uploader-preview">
+          <img src={value} alt="preview" />
+          <button className="img-uploader-remove" onClick={() => onChange('')}>
+            ✕ Remover
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="img-uploader-btn"
+          onClick={() => fileRef.current.click()}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <span>Enviando...</span>
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span>Selecionar imagem da galeria</span>
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Tela de Detalhe ──────────────────────────────────────────────────────────
 function ScriptDetail({ script, onBack, onDelete, onCopy, onEdit, isAdmin, currentUserId }) {
   const isLink  = isValidUrl(script.content)
@@ -231,15 +294,8 @@ function EditModal({ script, onSave, onClose }) {
           <textarea className="auth-input modal-textarea" value={content}
             onChange={e => setContent(e.target.value)} placeholder="Conteúdo ou link" rows={3} />
 
-          <label className="modal-label">URL da imagem (opcional)</label>
-          <input className="auth-input" value={imageUrl}
-            onChange={e => setImageUrl(e.target.value)} placeholder="https://..." />
-
-          {imageUrl && (
-            <div className="modal-img-preview">
-              <img src={imageUrl} alt="preview" onError={e => e.target.style.display='none'} />
-            </div>
-          )}
+          <label className="modal-label">Imagem (opcional)</label>
+          <ImageUploader value={imageUrl} onChange={setImageUrl} />
         </div>
 
         <div className="modal-footer">
@@ -449,14 +505,7 @@ export default function App() {
             rows={2} onChange={e => setDescription(e.target.value)} />
           <textarea placeholder="Conteúdo ou link" value={content}
             rows={3} onChange={e => setContent(e.target.value)} />
-          <input type="text" placeholder="URL da imagem (opcional)"
-            value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-          {imageUrl && (
-            <div className="form-img-preview">
-              <img src={imageUrl} alt="preview"
-                onError={e => e.target.parentElement.style.display='none'} />
-            </div>
-          )}
+          <ImageUploader value={imageUrl} onChange={setImageUrl} />
           <button onClick={addScript}>＋ Adicionar</button>
         </div>
       )}
@@ -474,20 +523,4 @@ export default function App() {
             <button onClick={fetchScripts}>Tentar novamente</button>
           </div>
         )}
-        {!loading && !dbError && filtered.length === 0 && (
-          <div className="empty-state">
-            <span className="icon">📭</span>Nenhum script encontrado.
-            {isAdmin && <><br />Adicione seu primeiro script acima!</>}
-          </div>
-        )}
-        {!loading && !dbError && filtered.map(script => (
-          <ScriptCard key={script.id} script={script}
-            onClick={() => setSelectedScript(script)} />
-        ))}
-      </div>
-
-      <Toast message={toast.message} visible={toast.visible} />
-    </div>
-  )
-          }
-                                                   
+  
