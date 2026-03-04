@@ -523,3 +523,4 @@ export default function App() {
             <button onClick={fetchScripts}>Tentar novamente</button>
           </div>
         )}
+  
