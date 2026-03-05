@@ -330,13 +330,28 @@ export default function App() {
     const { data: listener } = supabaseClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         setSession(null)
-      } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        setSession(session)
       } else {
         setSession(session)
       }
     })
-    return () => listener.subscription.unsubscribe()
+
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible') {
+        const { data } = await supabaseClient.auth.getSession()
+        if (!data.session) {
+          await supabaseClient.auth.signOut()
+        } else {
+          await supabaseClient.auth.refreshSession()
+          setSession(data.session)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      listener.subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   useEffect(() => { if (session) fetchScripts() }, [session])
@@ -421,8 +436,11 @@ export default function App() {
       .insert([{ title, content, description, image_url: imageUrl, created_by: currentUserId }])
     if (!error) {
       setTitle(''); setContent(''); setDescription(''); setImageUrl('')
+      setAddFormOpen(false)
       fetchScripts(); showToast('Script adicionado!')
-    } else showToast('Erro ao adicionar script')
+    } else {
+      showToast('Erro ao adicionar script')
+    }
   }
 
   async function updateScript(id, data) {
@@ -517,7 +535,7 @@ export default function App() {
               <textarea placeholder="Conteúdo ou link" value={content}
                 rows={3} onChange={e => setContent(e.target.value)} />
               <ImageUploader value={imageUrl} onChange={setImageUrl} />
-              <button onClick={() => { addScript(); setAddFormOpen(false) }}>＋ Adicionar</button>
+              <button onClick={addScript}>＋ Adicionar</button>
             </div>
           )}
         </div>
