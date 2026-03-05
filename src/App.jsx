@@ -370,17 +370,6 @@ export default function App() {
 
     throw lastError
   }, [isNetworkError])
-  const isNetworkError = (error) => {
-    if (!error) return false
-    const message = String(error.message || error)
-    return (
-      !navigator.onLine ||
-      error.name === 'AbortError' ||
-      message.includes('Failed to fetch') ||
-      message.includes('NetworkError') ||
-      message.includes('fetch')
-    )
-  }
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
@@ -398,7 +387,8 @@ export default function App() {
       try {
         const { data, error } = await supabaseClient.auth.getSession()
 
-        if (error && !isNetworkError(error)) {
+        if (error) {
+          if (isNetworkError(error)) return
           await supabaseClient.auth.signOut()
           return
         }
@@ -421,34 +411,6 @@ export default function App() {
       } catch (error) {
         if (!isNetworkError(error)) {
           await supabaseClient.auth.signOut()
-      if (document.visibilityState === 'visible') {
-        try {
-          const { data, error } = await supabaseClient.auth.getSession()
-
-          if (error && !isNetworkError(error)) {
-            await supabaseClient.auth.signOut()
-            return
-          }
-
-          if (!data?.session) {
-            if (!navigator.onLine) return
-            await supabaseClient.auth.signOut()
-            return
-          }
-
-          const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession()
-
-          if (refreshError) {
-            if (isNetworkError(refreshError)) return
-            await supabaseClient.auth.signOut()
-            return
-          }
-
-          setSession(refreshedData?.session || data.session)
-        } catch (error) {
-          if (!isNetworkError(error)) {
-            await supabaseClient.auth.signOut()
-          }
         }
       }
     }
@@ -546,49 +508,6 @@ export default function App() {
 
     try {
       const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession()
-async function fetchScripts() {
-  if (!navigator.onLine) {
-    setDbError('Sem internet no momento. Assim que a conexão voltar, os scripts serão recarregados.')
-    setLoading(false)
-    return
-  }
-
-  setLoading(true)
-  setDbError(null)
-
-  try {
-    const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession()
-
-    if (sessionError) {
-      if (isNetworkError(sessionError)) {
-        setDbError('Falha de conexão ao validar a sessão. Tente novamente em instantes.')
-        return
-      }
-      throw sessionError
-    }
-
-    if (!currentSession) {
-      await supabaseClient.auth.signOut()
-      return
-    }
-
-    let data = null
-    let error = null
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const response = await supabaseClient
-        .from('scripts')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      data = response.data
-      error = response.error
-
-      if (!error) break
-      if (!isNetworkError(error) || attempt === 3) break
-
-      await new Promise(resolve => setTimeout(resolve, 400 * attempt))
-    }
 
       if (sessionError) {
         if (isNetworkError(sessionError)) {
@@ -602,14 +521,6 @@ async function fetchScripts() {
         await supabaseClient.auth.signOut()
         return
       }
-
-      if (isNetworkError(error)) {
-        setDbError('Conexão instável. Não foi possível atualizar os scripts agora.')
-        return
-      }
-
-      throw error
-    }
 
       const scriptsData = await fetchScriptsFromApi()
       setScripts(scriptsData)
