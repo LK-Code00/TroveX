@@ -346,7 +346,16 @@ export default function App() {
         }
       }
     }
-    
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    const handleOnline = () => fetchScripts()
+    window.addEventListener('online', handleOnline)
+
+    return () => {
+      listener.subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('online', handleOnline)
+    }
   }, [])
 
   useEffect(() => { if (session) fetchScripts() }, [session])
@@ -358,16 +367,7 @@ export default function App() {
     const handleClick = (e) => {
       h1.classList.remove('clicked'); void h1.offsetWidth; h1.classList.add('clicked')
       setTimeout(() => h1.classList.remove('clicked'), 600)
-      for (let idocument.addEventListener('visibilitychange', handleVisibility)
-
-const handleOnline = () => fetchScripts()
-window.addEventListener('online', handleOnline)
-
-return () => {
-  listener.subscription.unsubscribe()
-  document.removeEventListener('visibilitychange', handleVisibility)
-  window.removeEventListener('online', handleOnline)
-} = 0; i < 18; i++) {
+      for (let i = 0; i < 18; i++) {
         const sp = document.createElement('span')
         sp.className = 'sparkle'
         const angle = Math.random() * 2 * Math.PI
@@ -419,14 +419,8 @@ return () => {
         await supabaseClient.auth.signOut()
         return
       }
-      let data, error
-for (let i = 0; i < 3; i++) {
-  const res = await supabaseClient
-    .from('scripts').select('*').order('created_at', { ascending: false })
-  data = res.data; error = res.error
-  if (!error) break
-  await new Promise(r => setTimeout(r, 1000))
-}
+      const { data, error } = await supabaseClient
+        .from('scripts').select('*').order('created_at', { ascending: false })
       if (error) {
         if (error.message?.includes('JWT') || error.code === 'PGRST301') {
           await supabaseClient.auth.signOut()
@@ -436,7 +430,7 @@ for (let i = 0; i < 3; i++) {
       }
       setScripts(data)
     } catch (err) {
-      setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
+      setDbError('Não foi possível conectar ao banco de dados.')
     } finally { setLoading(false) }
   }
 
