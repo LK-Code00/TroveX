@@ -426,7 +426,7 @@ export default function App() {
       }
       setScripts(data)
     } catch (err) {
-      setDbError('Não foi possível conectar ao banco de dados.')
+      setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
     } finally { setLoading(false) }
   }
 
