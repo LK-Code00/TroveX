@@ -415,8 +415,14 @@ export default function App() {
         await supabaseClient.auth.signOut()
         return
       }
-      const { data, error } = await supabaseClient
-        .from('scripts').select('*').order('created_at', { ascending: false })
+      let data, error
+for (let i = 0; i < 3; i++) {
+  const res = await supabaseClient
+    .from('scripts').select('*').order('created_at', { ascending: false })
+  data = res.data; error = res.error
+  if (!error) break
+  await new Promise(r => setTimeout(r, 1000))
+}
       if (error) {
         if (error.message?.includes('JWT') || error.code === 'PGRST301') {
           await supabaseClient.auth.signOut()
