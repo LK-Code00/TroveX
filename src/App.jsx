@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabaseClient } from './supabase.js'
 import Login from './Login.jsx'
 
@@ -325,17 +325,51 @@ export default function App() {
   const toastTimer = useRef(null)
   const h1Ref      = useRef(null)
 
-  const isNetworkError = (error) => {
+  const isNetworkError = useCallback((error) => {
     if (!error) return false
-    const message = String(error.message || error)
+    const message = String(error.message || error).toLowerCase()
     return (
       !navigator.onLine ||
       error.name === 'AbortError' ||
-      message.includes('Failed to fetch') ||
-      message.includes('NetworkError') ||
-      message.includes('fetch')
+      message.includes('failed to fetch') ||
+      message.includes('networkerror') ||
+      message.includes('network request failed') ||
+      message.includes('load failed')
     )
-  }
+  }, [])
+
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+  const fetchScriptsFromApi = useCallback(async () => {
+    let lastError = null
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new DOMException('Request timeout', 'AbortError')), 10000)
+      )
+
+      try {
+        const query = supabaseClient
+          .from('scripts')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        const response = await Promise.race([query, timeout])
+
+        if (!response?.error) return response.data || []
+
+        lastError = response.error
+        if (!isNetworkError(response.error)) break
+      } catch (error) {
+        lastError = error
+        if (!isNetworkError(error)) break
+      }
+
+      await wait(350 * attempt)
+    }
+
+    throw lastError
+  }, [isNetworkError])
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => setSession(data.session))
@@ -348,50 +382,54 @@ export default function App() {
     })
 
     const handleVisibility = async () => {
-      if (document.visibilityState === 'visible') {
-        try {
-          const { data, error } = await supabaseClient.auth.getSession()
+      if (document.visibilityState !== 'visible') return
 
-          if (error && !isNetworkError(error)) {
-            await supabaseClient.auth.signOut()
-            return
-          }
+      try {
+        const { data, error } = await supabaseClient.auth.getSession()
 
-          if (!data?.session) {
-            if (!navigator.onLine) return
-            await supabaseClient.auth.signOut()
-            return
-          }
+        if (error) {
+          if (isNetworkError(error)) return
+          await supabaseClient.auth.signOut()
+          return
+        }
 
-          const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession()
+        if (!data?.session) {
+          if (!navigator.onLine) return
+          await supabaseClient.auth.signOut()
+          return
+        }
 
-          if (refreshError) {
-            if (isNetworkError(refreshError)) return
-            await supabaseClient.auth.signOut()
-            return
-          }
+        const { data: refreshedData, error: refreshError } = await supabaseClient.auth.refreshSession()
 
-          setSession(refreshedData?.session || data.session)
-        } catch (error) {
-          if (!isNetworkError(error)) {
-            await supabaseClient.auth.signOut()
-          }
+        if (refreshError) {
+          if (isNetworkError(refreshError)) return
+          await supabaseClient.auth.signOut()
+          return
+        }
+
+        setSession(refreshedData?.session || data.session)
+      } catch (error) {
+        if (!isNetworkError(error)) {
+          await supabaseClient.auth.signOut()
         }
       }
     }
-    document.addEventListener('visibilitychange', handleVisibility)
 
-    const handleOnline = () => fetchScripts()
-    window.addEventListener('online', handleOnline)
+    const handleOffline = () => {
+      setDbError('Você está offline. Reconecte para sincronizar os scripts.')
+      setLoading(false)
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('offline', handleOffline)
 
     return () => {
       listener.subscription.unsubscribe()
       document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
-  }, [])
+  }, [isNetworkError])
 
-  useEffect(() => { if (session) fetchScripts() }, [session])
 
   useEffect(() => {
     const h1 = h1Ref.current
@@ -458,80 +496,79 @@ export default function App() {
       showToast('Erro ao adicionar script')
     }
   }
-async function fetchScripts() {
-  if (!navigator.onLine) {
-    setDbError('Sem internet no momento. Assim que a conexão voltar, os scripts serão recarregados.')
-    setLoading(false)
-    return
-  }
-
-  setLoading(true)
-  setDbError(null)
-
-  try {
-    const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession()
-
-    if (sessionError) {
-      if (isNetworkError(sessionError)) {
-        setDbError('Falha de conexão ao validar a sessão. Tente novamente em instantes.')
-        return
-      }
-      throw sessionError
-    }
-
-    if (!currentSession) {
-      await supabaseClient.auth.signOut()
+  const fetchScripts = useCallback(async () => {
+    if (!navigator.onLine) {
+      setDbError('Sem internet no momento. Assim que a conexão voltar, os scripts serão recarregados.')
+      setLoading(false)
       return
     }
 
-    let data = null
-    let error = null
+    setLoading(true)
+    setDbError(null)
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const response = await supabaseClient
-        .from('scripts')
-        .select('*')
-        .order('created_at', { ascending: false })
+    try {
+      const { data: { session: currentSession }, error: sessionError } = await supabaseClient.auth.getSession()
 
-      data = response.data
-      error = response.error
+      if (sessionError) {
+        if (isNetworkError(sessionError)) {
+          setDbError('Falha de conexão ao validar a sessão. Tente novamente em instantes.')
+          return
+        }
+        throw sessionError
+      }
 
-      if (!error) break
-      if (!isNetworkError(error) || attempt === 3) break
-
-      await new Promise(resolve => setTimeout(resolve, 400 * attempt))
-    }
-
-    if (error) {
-      if (error.message?.includes('JWT') || error.code === 'PGRST301') {
+      if (!currentSession) {
         await supabaseClient.auth.signOut()
         return
       }
 
-      if (isNetworkError(error)) {
+      const scriptsData = await fetchScriptsFromApi()
+      setScripts(scriptsData)
+
+      if (selectedScript) {
+        const stillExists = scriptsData.find(s => s.id === selectedScript.id)
+        if (!stillExists) {
+          setSelectedScript(null)
+        }
+      }
+    } catch (err) {
+      if (isNetworkError(err)) {
         setDbError('Conexão instável. Não foi possível atualizar os scripts agora.')
         return
       }
-
-      throw error
+      setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
+    } finally {
+      setLoading(false)
     }
+  }, [fetchScriptsFromApi, isNetworkError, selectedScript])
 
-    const scriptsData = data || []
-    setScripts(scriptsData)
+  useEffect(() => {
+    if (session) fetchScripts()
+  }, [session, fetchScripts])
 
-    if (selectedScript) {
-      const stillExists = scriptsData.find(s => s.id === selectedScript.id)
-      if (!stillExists) {
-        setSelectedScript(null)
-      }
+  useEffect(() => {
+    const handleOnline = () => fetchScripts()
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [fetchScripts])
+
+  useEffect(() => {
+    if (!session) return
+
+    const channel = supabaseClient
+      .channel(`scripts-changes-${session.user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scripts' },
+        () => fetchScripts()
+      )
+      .subscribe()
+
+    return () => {
+      supabaseClient.removeChannel(channel)
     }
+  }, [session, fetchScripts])
 
-  } catch (err) {
-    setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
-  } finally {
-    setLoading(false)
-  }
-}
   async function updateScript(id, data) {
     const { error } = await supabaseClient.from('scripts').update(data).eq('id', id)
     if (!error) {
@@ -551,9 +588,9 @@ async function fetchScripts() {
     showToast('Copiado!')
   }
 
-  const filtered = scripts.filter(s =>
+  const filtered = useMemo(() => scripts.filter(s =>
     s.title.toLowerCase().includes(search.toLowerCase())
-  )
+  ), [scripts, search])
 
   if (session === undefined) return (
     <div className="login-wrapper">
