@@ -346,12 +346,7 @@ export default function App() {
         }
       }
     }
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    return () => {
-      listener.subscription.unsubscribe()
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
+    
   }, [])
 
   useEffect(() => { if (session) fetchScripts() }, [session])
@@ -363,7 +358,16 @@ export default function App() {
     const handleClick = (e) => {
       h1.classList.remove('clicked'); void h1.offsetWidth; h1.classList.add('clicked')
       setTimeout(() => h1.classList.remove('clicked'), 600)
-      for (let i = 0; i < 18; i++) {
+      for (let idocument.addEventListener('visibilitychange', handleVisibility)
+
+const handleOnline = () => fetchScripts()
+window.addEventListener('online', handleOnline)
+
+return () => {
+  listener.subscription.unsubscribe()
+  document.removeEventListener('visibilitychange', handleVisibility)
+  window.removeEventListener('online', handleOnline)
+} = 0; i < 18; i++) {
         const sp = document.createElement('span')
         sp.className = 'sparkle'
         const angle = Math.random() * 2 * Math.PI
