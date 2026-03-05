@@ -426,26 +426,15 @@ export default function App() {
     }
   }
 async function fetchScripts() {
-  if (!navigator.onLine) {
-    setDbError("Sem conexão com a internet")
-    setLoading(false)
-    return
-  }
-
   setLoading(true)
   setDbError(null)
 
   try {
-    let { data: { session: currentSession } } = await supabaseClient.auth.getSession()
+    const { data: { session: currentSession } } = await supabaseClient.auth.getSession()
 
     if (!currentSession) {
-      const { data } = await supabaseClient.auth.refreshSession()
-      currentSession = data.session
-
-      if (!currentSession) {
-        await supabaseClient.auth.signOut()
-        return
-      }
+      await supabaseClient.auth.signOut()
+      return
     }
 
     const { data, error } = await supabaseClient
@@ -453,16 +442,26 @@ async function fetchScripts() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) {
+      if (error.message?.includes('JWT') || error.code === 'PGRST301') {
+        await supabaseClient.auth.signOut()
+        return
+      }
+      throw error
+    }
 
-    setScripts(data)
+    const scriptsData = data || []
+    setScripts(scriptsData)
+
+    if (selectedScript) {
+      const stillExists = scriptsData.find(s => s.id === selectedScript.id)
+      if (!stillExists) {
+        setSelectedScript(null)
+      }
+    }
 
   } catch (err) {
-    if (!navigator.onLine) {
-      setDbError("Sem conexão com a internet")
-    } else {
-      setDbError(err?.message || "Erro ao conectar ao banco")
-    }
+    setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
   } finally {
     setLoading(false)
   }
