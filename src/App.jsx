@@ -411,28 +411,7 @@ export default function App() {
     else { await supabaseClient.auth.signOut(); showToast('Conta excluída') }
   }
 
-  async function fetchScripts() {
-    setLoading(true); setDbError(null)
-    try {
-      const { data: { session: currentSession } } = await supabaseClient.auth.getSession()
-      if (!currentSession) {
-        await supabaseClient.auth.signOut()
-        return
-      }
-      const { data, error } = await supabaseClient
-        .from('scripts').select('*').order('created_at', { ascending: false })
-      if (error) {
-        if (error.message?.includes('JWT') || error.code === 'PGRST301') {
-          await supabaseClient.auth.signOut()
-          return
-        }
-        throw error
-      }
-      setScripts(data)
-    } catch (err) {
-      setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
-    } finally { setLoading(false) }
-  }
+
 
   async function addScript() {
     if (!isAdmin || !title || !content) return
@@ -446,7 +425,48 @@ export default function App() {
       showToast('Erro ao adicionar script')
     }
   }
+async function fetchScripts() {
+  if (!navigator.onLine) {
+    setDbError("Sem conexão com a internet")
+    setLoading(false)
+    return
+  }
 
+  setLoading(true)
+  setDbError(null)
+
+  try {
+    let { data: { session: currentSession } } = await supabaseClient.auth.getSession()
+
+    if (!currentSession) {
+      const { data } = await supabaseClient.auth.refreshSession()
+      currentSession = data.session
+
+      if (!currentSession) {
+        await supabaseClient.auth.signOut()
+        return
+      }
+    }
+
+    const { data, error } = await supabaseClient
+      .from('scripts')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    setScripts(data)
+
+  } catch (err) {
+    if (!navigator.onLine) {
+      setDbError("Sem conexão com a internet")
+    } else {
+      setDbError(err?.message || "Erro ao conectar ao banco")
+    }
+  } finally {
+    setLoading(false)
+  }
+}
   async function updateScript(id, data) {
     const { error } = await supabaseClient.from('scripts').update(data).eq('id', id)
     if (!error) {
