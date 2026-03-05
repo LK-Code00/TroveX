@@ -321,6 +321,7 @@ export default function App() {
   const [dbError, setDbError]           = useState(null)
   const [selectedScript, setSelectedScript] = useState(null)
   const [editingScript, setEditingScript]   = useState(null)
+  const [addFormOpen, setAddFormOpen]       = useState(false)
   const toastTimer = useRef(null)
   const h1Ref      = useRef(null)
 
@@ -495,15 +496,30 @@ export default function App() {
       </div>
 
       {isAdmin && (
-        <div className="top-bar">
-          <input type="text" placeholder="Título"
-            value={title} onChange={e => setTitle(e.target.value)} />
-          <textarea placeholder="Descrição (opcional)" value={description}
-            rows={2} onChange={e => setDescription(e.target.value)} />
-          <textarea placeholder="Conteúdo ou link" value={content}
-            rows={3} onChange={e => setContent(e.target.value)} />
-          <ImageUploader value={imageUrl} onChange={setImageUrl} />
-          <button onClick={addScript}>＋ Adicionar</button>
+        <div className="add-form-wrapper">
+          {!addFormOpen ? (
+            <button className="add-form-toggle" onClick={() => setAddFormOpen(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Adicionar script ou link
+            </button>
+          ) : (
+            <div className="add-form-expanded">
+              <div className="add-form-header">
+                <span className="add-form-title">Novo item</span>
+                <button className="drawer-close" onClick={() => setAddFormOpen(false)}>✕</button>
+              </div>
+              <input type="text" placeholder="Título"
+                value={title} onChange={e => setTitle(e.target.value)} />
+              <textarea placeholder="Descrição (opcional)" value={description}
+                rows={2} onChange={e => setDescription(e.target.value)} />
+              <textarea placeholder="Conteúdo ou link" value={content}
+                rows={3} onChange={e => setContent(e.target.value)} />
+              <ImageUploader value={imageUrl} onChange={setImageUrl} />
+              <button onClick={() => { addScript(); setAddFormOpen(false) }}>＋ Adicionar</button>
+            </div>
+          )}
         </div>
       )}
 
