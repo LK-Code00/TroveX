@@ -5,7 +5,9 @@ const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET
 
 export default function Login() {
   const [mode, setMode]           = useState('login')
+  const [identifier, setIdentifier] = useState('')
   const [email, setEmail]         = useState('')
+  const [username, setUsername]   = useState('')
   const [password, setPassword]   = useState('')
   const [adminCode, setAdminCode] = useState('')
   const [isAdmin, setIsAdmin]     = useState(false)
@@ -17,7 +19,9 @@ export default function Login() {
     setMode(m)
     setError(null)
     setSuccess(null)
+    setIdentifier('')
     setEmail('')
+    setUsername('')
     setPassword('')
     setAdminCode('')
     setIsAdmin(false)
@@ -27,7 +31,22 @@ export default function Login() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password })
+
+    const normalizedIdentifier = identifier.trim().toLowerCase()
+    const isEmailLogin = normalizedIdentifier.includes('@')
+    let emailForLogin = normalizedIdentifier
+
+    if (!isEmailLogin) {
+      const storedUsernames = JSON.parse(localStorage.getItem('troveX-usernames') || '{}')
+      emailForLogin = storedUsernames[normalizedIdentifier]
+      if (!emailForLogin) {
+        setError('Username não encontrado neste dispositivo. Faça login com e-mail primeiro.')
+        setLoading(false)
+        return
+      }
+    }
+
+    const { error } = await supabaseClient.auth.signInWithPassword({ email: emailForLogin, password })
     if (error) setError('E-mail ou senha incorretos.')
     setLoading(false)
   }
@@ -45,16 +64,26 @@ export default function Login() {
     }
 
     const role = isAdmin ? 'admin' : 'user'
+    const normalizedUsername = username.trim().toLowerCase()
+
+    if (!/^[a-zA-Z0-9._-]{3,20}$/.test(normalizedUsername)) {
+      setError('Username inválido. Use 3-20 caracteres (letras, números, ponto, _ ou -).')
+      setLoading(false)
+      return
+    }
 
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
-      options: { data: { role } }
+      options: { data: { role, username: normalizedUsername } }
     })
 
     if (error) {
       setError('Erro ao criar conta. Verifique os dados.')
     } else {
+      const storedUsernames = JSON.parse(localStorage.getItem('troveX-usernames') || '{}')
+      storedUsernames[normalizedUsername] = email.trim().toLowerCase()
+      localStorage.setItem('troveX-usernames', JSON.stringify(storedUsernames))
       setSuccess('Conta criada com sucesso!')
       switchMode('login')
     }
@@ -84,14 +113,38 @@ export default function Login() {
         </div>
 
         <form className="auth-form" onSubmit={mode === 'login' ? handleLogin : handleRegister}>
-          <input
-            className="auth-input"
-            type="email"
-            placeholder="E-mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          {mode === 'login' ? (
+            <input
+              className="auth-input"
+              type="text"
+              placeholder="E-mail ou username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+            />
+          ) : (
+            <>
+              <input
+                className="auth-input"
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              <input
+                className="auth-input"
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                minLength={3}
+                maxLength={20}
+                required
+              />
+            </>
+          )}
 
           <input
             className="auth-input"
@@ -132,5 +185,4 @@ export default function Login() {
       </div>
     </div>
   )
-           }
-                
+}
