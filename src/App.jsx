@@ -512,15 +512,8 @@ export default function App() {
     setDbError(null)
 
     try {
-      const { data, error } = await supabaseClient.auth.getSession()
+      const { data, error: sessionError } = await supabaseClient.auth.getSession()
 
-if (error || !data?.session) {
-  await supabaseClient.auth.signOut()
-  setSession(null)
-  return
-}
-
-const currentSession = data.session
       if (sessionError) {
         if (isNetworkError(sessionError)) {
           setDbError('Falha de conexão ao validar a sessão. Tente novamente em instantes.')
@@ -529,7 +522,7 @@ const currentSession = data.session
         throw sessionError
       }
 
-      if (!currentSession) {
+      if (!data?.session) {
         await supabaseClient.auth.signOut()
         return
       }
