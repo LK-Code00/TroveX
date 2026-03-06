@@ -322,8 +322,9 @@ export default function App() {
   const [selectedScript, setSelectedScript] = useState(null)
   const [editingScript, setEditingScript]   = useState(null)
   const [addFormOpen, setAddFormOpen]       = useState(false)
-  const toastTimer = useRef(null)
-  const h1Ref      = useRef(null)
+  const toastTimer  = useRef(null)
+  const h1Ref       = useRef(null)
+  const fetchingRef = useRef(false)
 
   const isNetworkError = useCallback((error) => {
     if (!error) return false
@@ -345,7 +346,7 @@ export default function App() {
 
     for (let attempt = 1; attempt <= 4; attempt++) {
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new DOMException('Request timeout', 'AbortError')), 10000)
+        setTimeout(() => reject(new DOMException('Request timeout', 'AbortError')), 15000)
       )
 
       try {
@@ -491,15 +492,19 @@ export default function App() {
     if (!error) {
       setTitle(''); setContent(''); setDescription(''); setImageUrl('')
       setAddFormOpen(false)
-      fetchScripts(); showToast('Script adicionado!')
+      await fetchScripts(); showToast('Script adicionado!')
     } else {
       showToast('Erro ao adicionar script')
     }
   }
   const fetchScripts = useCallback(async () => {
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+
     if (!navigator.onLine) {
       setDbError('Sem internet no momento. Assim que a conexão voltar, os scripts serão recarregados.')
       setLoading(false)
+      fetchingRef.current = false
       return
     }
 
@@ -539,6 +544,7 @@ export default function App() {
       setDbError(err?.message || JSON.stringify(err) || 'Erro desconhecido')
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
   }, [fetchScriptsFromApi, isNetworkError, selectedScript])
 
@@ -560,7 +566,7 @@ export default function App() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'scripts' },
-        () => fetchScripts()
+        () => { setTimeout(fetchScripts, 500) }
       )
       .subscribe()
 
@@ -572,7 +578,7 @@ export default function App() {
   async function updateScript(id, data) {
     const { error } = await supabaseClient.from('scripts').update(data).eq('id', id)
     if (!error) {
-      fetchScripts(); showToast('Script atualizado!')
+      await fetchScripts(); showToast('Script atualizado!')
       if (selectedScript?.id === id) setSelectedScript(prev => ({ ...prev, ...data }))
     } else showToast('Erro ao atualizar script')
   }
